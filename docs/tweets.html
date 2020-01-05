@@ -2838,13 +2838,13 @@ final_words &lt;- colSums(as.matrix(dt_matrix))</code></pre>
   top_n(10,final_words) %&gt;%
   mutate(final_words = color_tile(&quot;lightblue&quot;,&quot;lightblue&quot;)(final_words)) %&gt;%
   mutate(text = color_tile(&quot;lightgreen&quot;,&quot;lightgreen&quot;)(text)) %&gt;%
-  kable(&quot;html&quot;, escape = FALSE, align = &quot;c&quot;, caption = &quot;Tokenized Format Example&quot;) %&gt;%
+  kable(&quot;html&quot;, escape = FALSE, align = &quot;c&quot;, caption = &quot;Top_10 Tokenized Words&quot;) %&gt;%
   kable_styling(bootstrap_options =
                   c(&quot;striped&quot;, &quot;condensed&quot;, &quot;bordered&quot;),
                 full_width = FALSE)</code></pre>
 <table class="table table-striped table-condensed table-bordered" style="width: auto !important; margin-left: auto; margin-right: auto;">
 <caption>
-Tokenized Format Example
+Top_10 Tokenized Words
 </caption>
 <thead>
 <tr>
@@ -3127,13 +3127,13 @@ Positive
   top_n(10,final_words) %&gt;%
   mutate(final_words = color_tile(&quot;lightblue&quot;,&quot;lightblue&quot;)(final_words)) %&gt;%
   mutate(text = color_tile(&quot;lightgreen&quot;,&quot;lightgreen&quot;)(text)) %&gt;%
-  kable(&quot;html&quot;, escape = FALSE, align = &quot;c&quot;, caption = &quot;Tokenized Format Example&quot;) %&gt;%
+  kable(&quot;html&quot;, escape = FALSE, align = &quot;c&quot;, caption = &quot;Top_10 Tokenized Negative Words&quot;) %&gt;%
   kable_styling(bootstrap_options =
                   c(&quot;striped&quot;, &quot;condensed&quot;, &quot;bordered&quot;),
                 full_width = FALSE)</code></pre>
 <table class="table table-striped table-condensed table-bordered" style="width: auto !important; margin-left: auto; margin-right: auto;">
 <caption>
-Tokenized Format Example
+Top_10 Tokenized Negative Words
 </caption>
 <thead>
 <tr>
