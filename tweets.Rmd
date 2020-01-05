@@ -1,0 +1,277 @@
+---
+title: "Analysis of Twitter Sentiments Towards Trump"
+author: "Freeman Goja"
+date: "04/12/2019"
+output: 
+  html_document: 
+    keep_md: yes
+---
+Set directory
+```{r}
+setwd("C:\\Users\\admin\\Desktop\\git hub\\twitter-sentiments")
+```
+
+Install / Load relevant packages
+```{r}
+if(!"pacman" %in% installed.packages()[,"Package"]) install.packages("pacman")
+pacman::p_load(twitteR, ROAuth, dplyr, ggplot2, RColorBrewer,
+               wordcloud, NLP, tm, SnowballC, RWeka, formattable, kableExtra, knitr,
+               RSentiment, DT, sqldf, tidyverse)
+```
+
+
+Set up API authorization
+```{r, eval=FALSE}
+consumerKey="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+consumerSecret="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+accessToken="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+accessTokenSecret= "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+setup_twitter_oauth(consumerKey,consumerSecret,accessToken,accessTokenSecret)
+```
+
+Scrape tweets
+```{r, eval=FALSE}
+trump_tweets <- searchTwitter('#Trump', n=10000)
+```
+```{r, eval=FALSE}
+convert the list of tweets to a dataframe
+df <- twListToDF(trump_tweets)
+```
+
+order the dataframe
+```{r, eval=FALSE}
+df <- df[, order(names(df))]
+```
+format the date
+```{r, eval=FALSE}
+df$created <- strftime(df$created, '%Y-%m-%d')
+```
+save df as an R object
+```{r, eval=FALSE}
+save(df, file = "df.Rdata")
+```
+load the saved .RData file:
+```{r, include=FALSE}
+load(file = "df.Rdata")
+```
+Data preprocessing: Let's start by removing any tweets by Trump himself from our data set
+```{r}
+df<-sqldf("select * from df where screenName not in ('realDonaldTrump' and 'POTUS')")
+```
+A glance at the data dataset
+```{r, results="hide"}
+glimpse(df)
+```
+Let's see the distribution of retweets
+```{r}
+ggplot(df,aes(x=factor(isRetweet)))+
+  geom_bar(stat = "count", width = 0.7, fill = c("cyan", "gold")) 
+```
+
+find unique tweets
+```{r}
+unique_tweets<-distinct(df, text, .keep_all = TRUE)
+```
+find the top_10 trending tweets
+```{r}
+trending_tweets<-top_n(unique_tweets, 10, retweetCount)
+```
+Let's remove the special characters
+```{r}
+removeSpecialChars <- function(x) gsub("@\\w+RT\nRT://w/\n", " ", x)
+```
+```{r}
+trending_tweets$text <- sapply(trending_tweets$text, removeSpecialChars)
+```
+```{r, results="hide"}
+print(trending_tweets$text)
+```
+extract relevant data
+```{r}
+my_text <- as.character(df$text)
+```
+Further data cleaning, creation of a corpus and extration of the relevant words
+```{r, warning=FALSE}
+set.seed(100)
+sample <- sample(my_text, (length(my_text)))
+corpus <- Corpus(VectorSource(list(sample)))
+corpus <- tm_map(corpus, removePunctuation)
+corpus <- tm_map(corpus, content_transformer(tolower))
+corpus <- tm_map(corpus, removeNumbers)
+corpus <- tm_map(corpus, stripWhitespace)
+corpus <- tm_map(corpus, removeWords, stopwords('english'))
+corpus <- tm_map(corpus, stemDocument)
+dt_matrix <- DocumentTermMatrix(VCorpus(VectorSource(corpus[[1]]$content)))
+final_words <- colSums(as.matrix(dt_matrix))
+```
+Calculate Sentiments
+```{r, results="hide"}
+cal_sentiments <- calculate_sentiment(names(final_words))
+```
+Add final_words column
+```{r}
+cal_sentiments <- cbind(cal_sentiments, as.data.frame(final_words))
+```
+Find the top_10 tokenized words used to refer to Trump on twitter
+```{r}
+cal_sentiments %>%
+  select(text, sentiment, final_words) %>%
+  arrange() %>%
+  top_n(10,final_words) %>%
+  mutate(final_words = color_tile("lightblue","lightblue")(final_words)) %>%
+  mutate(text = color_tile("lightgreen","lightgreen")(text)) %>%
+  kable("html", escape = FALSE, align = "c", caption = "Tokenized Format Example") %>%
+  kable_styling(bootstrap_options =
+                  c("striped", "condensed", "bordered"),
+                full_width = FALSE)
+```
+
+Show distribution of the sentiments
+```{r}
+count<-table(cal_sentiments$sentiment)
+barplot(count, main="Sentiment distribution",
+        xlab="Number of sentiments", col = c("red", "blue", "green"))
+
+```
+
+Top_10 positive words used
+```{r}
+cal_sentiments %>%
+  filter(sentiment=="Positive") %>%
+  select(text, sentiment, final_words) %>%
+  arrange() %>%
+  top_n(10,final_words) %>%
+  mutate(final_words = color_tile("lightblue","lightblue")(final_words)) %>%
+  mutate(text = color_tile("lightgreen","lightgreen")(text)) %>%
+  kable("html", escape = FALSE, align = "c", caption = "Top_10 Tokenized Positive Words") %>%
+  kable_styling(bootstrap_options =
+                  c("striped", "condensed", "bordered"),
+                full_width = FALSE)
+```
+
+
+Top 10 negative words used against Trump
+```{r}
+cal_sentiments %>%
+  filter(sentiment=="Negative") %>%
+  select(text, sentiment, final_words) %>%
+  arrange() %>%
+  top_n(10,final_words) %>%
+  mutate(final_words = color_tile("lightblue","lightblue")(final_words)) %>%
+  mutate(text = color_tile("lightgreen","lightgreen")(text)) %>%
+  kable("html", escape = FALSE, align = "c", caption = "Tokenized Format Example") %>%
+  kable_styling(bootstrap_options =
+                  c("striped", "condensed", "bordered"),
+                full_width = FALSE)
+```
+
+Sentiment Analysis
+```{r}
+pos_sent<-cal_sentiments[cal_sentiments$sentiment == 'Positive',]
+neg_sent<-cal_sentiments[cal_sentiments$sentiment == 'Negative',]
+neut_sent<-cal_sentiments[cal_sentiments$sentiment == 'Neutral',]
+```
+Positive sentiments
+```{r}
+DT::datatable(pos_sent)
+```
+
+Wordcloud of positive words with freq of at least 10
+```{r, warning=FALSE}
+layout(matrix(c(1, 2), nrow=2), heights=c(1, 4))
+par(mar=rep(0, 4))
+plot.new()
+set.seed(100)
+wordcloud(pos_sent$text,pos_sent$final_words,min.final_words=10,colors=brewer.pal(6,"Dark2"))
+```
+
+Negative Sentiments
+```{r}
+DT::datatable(neg_sent)
+```
+
+Wordcloud of negative sentiments
+```{r, warning=FALSE}
+plot.new()
+set.seed(100)
+wordcloud(neg_sent$text,neg_sent$final_words, min.final_words=10,colors=brewer.pal(6,"Dark2"))
+```
+
+barplot of top positive sentiments
+```{r}
+top_pos_sent<-pos_sent[order(-pos_sent$final_words),]
+top_pos_sent<-top_pos_sent[1:10,]
+
+ggplot(top_pos_sent, aes(x = text, y = final_words,
+                            main="Top 10 Positive Sentiments")) +
+  geom_bar(stat = "identity", fill = "darkgreen") +
+  geom_text(aes(label=final_words), vjust=1.6, color="white", size=3.5)+
+  theme_minimal()
+```
+
+barplot of top negative sentiments
+```{r}
+top_neg_sent<-neg_sent[order(-neg_sent$final_words),]
+top_neg_sent<-top_neg_sent[1:10,]
+
+ggplot(top_neg_sent, aes(x = text, y = final_words,
+                         main="Top 10 Negative Sentiments")) +
+  geom_bar(stat = "identity", fill = "darkred") +
+  geom_text(aes(label=final_words), vjust=1.6, color="white", size=3.5)+
+  theme_minimal()
+```
+
+Positive Words distribution using density plots
+```{r}
+d_pos<-density(pos_sent$final_words)
+plot(d_pos, main="Kernel Density Plot of Positive Sentiments")
+polygon(d_pos,col="darkblue", border="red")
+```
+
+Negative
+```{r}
+d_neg<-density(neg_sent$final_words)
+plot(d_neg, main="Kernel Density Plot of Negative Sentiments")
+polygon(d_neg,col="red", border="blue")
+```
+
+Calculate Proportion of positive, negative and neutral sentiments
+```{r}
+total_sent<-length(cal_sentiments$sentiment)
+```
+Positive Sentiments
+```{r}
+pos_count<-sqldf("select count(sentiment) from cal_sentiments where sentiment='Positive'")
+```
+```{r}
+print(pos_count)
+```
+```{r}
+pos_prop<-pos_count/total_sent * 100
+```
+```{r}
+print(paste("The proportion of positive sentiments is ", round(pos_prop, digits = 1), "%"))
+```
+Negative Sentiments
+```{r}
+neg_count<-sqldf("select count(sentiment) from cal_sentiments where sentiment='Negative'")
+```
+```{r}
+print(neg_count)
+```
+```{r}
+neg_prop<-neg_count/total_sent * 100
+print(paste("The proportion of Negative sentiments is ", round(neg_prop, digits = 1), "%"))
+```
+
+Neurtral Sentiments
+```{r}
+neut_count<-sqldf("select count(sentiment) from cal_sentiments where sentiment='Neutral'")
+```
+```{r}
+print(neut_count)
+```
+```{r}
+neut_prop<-neut_count/total_sent * 100
+print(paste("The proportion of Neutral sentiments is ", round(neut_prop, digits = 1), "%"))
+```
