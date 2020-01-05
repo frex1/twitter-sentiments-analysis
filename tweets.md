@@ -141,14 +141,14 @@ cal_sentiments %>%
   top_n(10,final_words) %>%
   mutate(final_words = color_tile("lightblue","lightblue")(final_words)) %>%
   mutate(text = color_tile("lightgreen","lightgreen")(text)) %>%
-  kable("html", escape = FALSE, align = "c", caption = "Tokenized Format Example") %>%
+  kable("html", escape = FALSE, align = "c", caption = "Top_10 Tokenized Words") %>%
   kable_styling(bootstrap_options =
                   c("striped", "condensed", "bordered"),
                 full_width = FALSE)
 ```
 
 <table class="table table-striped table-condensed table-bordered" style="width: auto !important; margin-left: auto; margin-right: auto;">
-<caption>Tokenized Format Example</caption>
+<caption>Top_10 Tokenized Words</caption>
  <thead>
   <tr>
    <th style="text-align:center;"> text </th>
@@ -310,14 +310,14 @@ cal_sentiments %>%
   top_n(10,final_words) %>%
   mutate(final_words = color_tile("lightblue","lightblue")(final_words)) %>%
   mutate(text = color_tile("lightgreen","lightgreen")(text)) %>%
-  kable("html", escape = FALSE, align = "c", caption = "Tokenized Format Example") %>%
+  kable("html", escape = FALSE, align = "c", caption = "Top_10 Tokenized Negative Words") %>%
   kable_styling(bootstrap_options =
                   c("striped", "condensed", "bordered"),
                 full_width = FALSE)
 ```
 
 <table class="table table-striped table-condensed table-bordered" style="width: auto !important; margin-left: auto; margin-right: auto;">
-<caption>Tokenized Format Example</caption>
+<caption>Top_10 Tokenized Negative Words</caption>
  <thead>
   <tr>
    <th style="text-align:center;"> text </th>
